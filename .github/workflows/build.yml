@@ -16,8 +16,7 @@ jobs:
         run: |
           echo Preparing version: $VERSION
           if curl -fs https://hub.docker.com/v2/repositories/gera2ld/caddy/tags/$VERSION > /dev/null; then
-            echo Version exists: $VERSION
-            exit 1
+            echo WARNING: Version exists: $VERSION
           fi
           echo VERSION=$VERSION >> $GITHUB_ENV
         env:
