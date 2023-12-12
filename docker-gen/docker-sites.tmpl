@@ -1,0 +1,29 @@
+{{ $hosts := groupByLabel $ "virtual.host" }}
+
+{{ range $h, $containers := $hosts }}
+{{ $c := first $containers }}
+{{ $allhosts := trim (index $c.Labels "virtual.host") }}
+{{ $hostDirectives := trim (index $c.Labels "virtual.host.directives") }}
+
+@{{ $c.Name }} host {{ $allhosts }}
+handle @{{ $c.Name }} {
+  {{ range $i, $c := $containers }}
+  {{ $proxyMatcher := trim (index $c.Labels "virtual.proxy.matcher") }}
+  {{ $proxyDirectives := trim (index $c.Labels "virtual.proxy.directives") }}
+
+  # {{ $c.Name }}
+  {{ $hostDirectives }}
+
+  reverse_proxy {{ $proxyMatcher }} {
+    {{ $proxyDirectives }}
+    {{ $port := or (trim (index $c.Labels "virtual.port")) "80" }}
+    {{ range $j, $net := $c.Networks }}
+    {{ $isCaddyNetwork := eq $net.Name $.Env.CADDY_NETWORK }}
+    {{ if $isCaddyNetwork }}
+    to {{ $net.IP }}:{{ $port }}
+    {{ end }}
+    {{ end }}
+  }
+  {{ end }}
+}
+{{ end }}
