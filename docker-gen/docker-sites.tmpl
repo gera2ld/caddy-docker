@@ -1,29 +1,63 @@
-{{ $hosts := groupByLabel $ "virtual.host" }}
+{{- $store := dict "count" 0 "bindMap" dict -}}
+{{- range $i, $container := $ -}}
 
-{{ range $h, $containers := $hosts }}
-{{ $c := first $containers }}
-{{ $allhosts := trim (index $c.Labels "virtual.host") }}
-{{ $hostDirectives := trim (index $c.Labels "virtual.host.directives") }}
+  {{- $info := dict "ip" "" "bind" (index $container.Labels "virtual.bind") -}}
+  {{- if not $info.bind -}}
+    {{- continue -}}
+  {{- end -}}
+  {{- range $j, $net := $container.Networks -}}
+    {{- if eq $net.Name $.Env.CADDY_NETWORK -}}
+      {{- $_ := set $info "ip" $net.IP -}}
+      {{- break -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if not $info.ip -}}
+    {{- continue -}}
+  {{- end -}}
 
-@{{ $c.Name }} host {{ $allhosts }}
-handle @{{ $c.Name }} {
-  {{ range $i, $c := $containers }}
-  {{ $proxyMatcher := trim (index $c.Labels "virtual.proxy.matcher") }}
-  {{ $proxyDirectives := trim (index $c.Labels "virtual.proxy.directives") }}
+  {{- $bindList := splitList ";" $info.bind -}}
+  {{- range $j, $rawBind := $bindList -}}
+    {{- $bind := trim $rawBind -}}
+    {{- if not (hasKey $store.bindMap $bind) -}}
+      {{- $_ := set $store "count" (add $store.count 1) -}}
+      {{- $data := dict "index" $store.count "containers" (list $container) -}}
+      {{- $_ := set $store.bindMap $bind $data -}}
+    {{- else -}}
+      {{- $data := index $store.bindMap $bind -}}
+      {{- $list := append $data.containers $container -}}
+      {{- $_ := set $data "containers" $list -}}
+    {{- end -}}
+  {{- end -}}
 
-  # {{ $c.Name }}
-  {{ $hostDirectives }}
+{{- end -}}
 
-  reverse_proxy {{ $proxyMatcher }} {
-    {{ $proxyDirectives }}
-    {{ $port := or (trim (index $c.Labels "virtual.port")) "80" }}
-    {{ range $j, $net := $c.Networks }}
-    {{ $isCaddyNetwork := eq $net.Name $.Env.CADDY_NETWORK }}
-    {{ if $isCaddyNetwork }}
-    to {{ $net.IP }}:{{ $port }}
-    {{ end }}
-    {{ end }}
+{{ range $bind, $data := $store.bindMap }}
+  {{- $bindInfo := dict "matcher" "" "port" "" "host" "" -}}
+  {{- if or (hasPrefix "/" $bind) (hasPrefix "* " $bind) -}}
+    {{- $portMatcherHost := splitn " " 3 $bind -}}
+    {{- if ne $portMatcherHost._0 "*" -}}
+      {{- $_ := set $bindInfo "matcher" $portMatcherHost._0 -}}
+    {{- end -}}
+    {{- $_ := set $bindInfo "port" $portMatcherHost._1 -}}
+    {{- $_ := set $bindInfo "host" $portMatcherHost._2 -}}
+  {{- else -}}
+    {{- $portMatcherHost := splitn " " 2 $bind -}}
+    {{- $_ := set $bindInfo "port" $portMatcherHost._0 -}}
+    {{- $_ := set $bindInfo "host" $portMatcherHost._1 -}}
+  {{- end -}}
+  {{- $hostMatcher := list "dockergen-rule-" (toString $data.index) | join "" }}
+@{{ $hostMatcher }} host {{ $bindInfo.host }}
+handle @{{ $hostMatcher }} {
+  {{ range $i, $container := $data.containers }}
+    {{- range $j, $net := $container.Networks -}}
+      {{- if eq $net.Name $.Env.CADDY_NETWORK -}}
+  # {{ $container.Name }}
+  reverse_proxy {{ $bindInfo.matcher }} {
+    to {{ $net.IP }}:{{ $bindInfo.port }}
   }
+        {{- break -}}
+      {{- end -}}
+    {{- end -}}
   {{ end }}
 }
 {{ end }}
