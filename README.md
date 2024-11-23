@@ -14,8 +14,6 @@ $ docker build -t caddy .
 ## Usage
 
 ```yaml
-version: "3.8"
-
 services:
   caddy:
     image: gera2ld/caddy:latest
@@ -55,4 +53,25 @@ Then in `/etc/caddy/Caddyfile`:
 
   import /etc/docker-gen/docker-sites.caddy
 }
+```
+
+Other services with automatic configuration:
+
+```yaml
+services:
+  my-service-1:
+    # ...
+    labels:
+      # Multiple reverse proxies
+      virtual.bind: 3000 my-service.example.com; 3001 my-api.example.com
+  my-service-2:
+    # ...
+    labels:
+      # Extra directives for a reverse proxy
+      virtual.bind: 3000 my-service.example.com | header_up Accept-Encoding identity
+
+networks:
+  default:
+    external: true
+    name: caddy
 ```

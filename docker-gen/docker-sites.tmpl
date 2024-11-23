@@ -17,15 +17,19 @@
 
   {{- $bindList := splitList ";" $info.bind -}}
   {{- range $j, $rawBind := $bindList -}}
-    {{- $bind := trim $rawBind -}}
+    {{- $bindData := splitList "|" $rawBind -}}
+    {{- $bind := trim (first $bindData) -}}
+    {{- $directives := slice $bindData 1 }}
+    {{- $proxy := dict "ip" $info.ip "name" $container.Name "directives" $directives -}}
     {{- if not (hasKey $store.bindMap $bind) -}}
       {{- $_ := set $store "count" (add $store.count 1) -}}
-      {{- $data := dict "index" $store.count "containers" (list $container) -}}
+      {{- $proxyList := list $proxy -}}
+      {{- $data := dict "index" $store.count "proxyList" $proxyList -}}
       {{- $_ := set $store.bindMap $bind $data -}}
     {{- else -}}
-      {{- $data := index $store.bindMap $bind -}}
-      {{- $list := append $data.containers $container -}}
-      {{- $_ := set $data "containers" $list -}}
+      {{- $data := dig $store.bindMap $bind -}}
+      {{- $list := append $data.proxyList $proxy -}}
+      {{- $_ := set $data "proxyList" $list -}}
     {{- end -}}
   {{- end -}}
 
@@ -48,16 +52,14 @@
   {{- $hostMatcher := list "dockergen-rule-" (toString $data.index) | join "" }}
 @{{ $hostMatcher }} host {{ $bindInfo.host }}
 handle @{{ $hostMatcher }} {
-  {{ range $i, $container := $data.containers }}
-    {{- range $j, $net := $container.Networks -}}
-      {{- if eq $net.Name $.Env.CADDY_NETWORK -}}
-  # {{ $container.Name }}
+  {{- range $i, $proxy := $data.proxyList }}
+  # {{ $proxy.name }}
   reverse_proxy {{ $bindInfo.matcher }} {
-    to {{ $net.IP }}:{{ $bindInfo.port }}
+    {{- range $j, $directive := $proxy.directives }}
+    {{ trim $directive }}
+    {{- end }}
+    to {{ $proxy.ip }}:{{ $bindInfo.port }}
   }
-        {{- break -}}
-      {{- end -}}
-    {{- end -}}
-  {{ end }}
+  {{- end }}
 }
-{{ end }}
+{{ end -}}
