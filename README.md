@@ -3,6 +3,7 @@
 This is an unofficial build for caddy, with additional features:
 
 - DNS challenge for SSL
+- Add Cloudflare IP ranges to trusted proxies
 
 ## Build
 
