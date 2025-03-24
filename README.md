@@ -4,6 +4,7 @@ This is an unofficial build for caddy, with additional features:
 
 - DNS challenge for SSL
 - Add Cloudflare IP ranges to trusted proxies
+- Caddy Gen to generate configuration automatically when a service is up or down
 
 ## Build
 
@@ -26,6 +27,17 @@ services:
       - caddy_data:/data
       - ./site:/srv
       - ./caddy:/etc/caddy
+
+      # Needed by caddy-gen
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    environment:
+
+      # Needed by caddy-gen
+      - CADDY_GEN_ENABLED=1
+      - CADDY_GEN_NETWORK=gateway
+      - CADDY_GEN_OUTFILE=/etc/caddy/sites/docker-sites.caddy
+
     networks:
       - caddy
 
