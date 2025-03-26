@@ -14,9 +14,13 @@ RUN cd caddy-gen \
 
 # Build Caddy
 
-FROM caddy:${CADDY_VERSION}-builder-alpine AS caddy-builder
+FROM golang:1-alpine AS caddy-builder
 
-RUN xcaddy build \
+WORKDIR /usr/bin
+
+RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@v0.4.4
+
+RUN xcaddy build $CADDY_VERSION \
     --with github.com/caddy-dns/alidns \
     --with github.com/caddy-dns/cloudflare \
     --with github.com/greenpau/caddy-security \
