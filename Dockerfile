@@ -2,7 +2,7 @@ ARG CADDY_VERSION=2
 
 # Build Caddy-gen
 
-FROM golang:1-alpine AS caddy-gen-builder
+FROM golang:1 AS caddy-gen-builder
 
 WORKDIR /usr/src/app
 
@@ -14,14 +14,14 @@ RUN cd caddy-gen \
 
 # Build Caddy
 
-FROM golang:1-alpine AS caddy-builder
+FROM golang:1 AS caddy-builder
 
 WORKDIR /usr/bin
 
 RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@v0.4.4
 
 RUN xcaddy build $CADDY_VERSION \
-    --with github.com/caddy-dns/alidns \
+    # --with github.com/caddy-dns/alidns \
     --with github.com/caddy-dns/cloudflare \
     --with github.com/greenpau/caddy-security \
     --with github.com/WeidiDeng/caddy-cloudflare-ip \
