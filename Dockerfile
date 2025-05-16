@@ -1,22 +1,20 @@
 ARG CADDY_VERSION=2
-
-# Build Caddy-gen
-
-FROM golang:1 AS caddy-gen-builder
-
-WORKDIR /usr/src/app
-
-COPY caddy-gen /usr/src/app/caddy-gen
-
-RUN cd caddy-gen \
-    && go mod download \
-    && CGO_ENABLED=0 go build -ldflags='-s -w' -trimpath -o /usr/bin/caddy-gen .
+ARG TARGETARCH=amd64
 
 # Build Caddy
 
-FROM golang:1 AS caddy-builder
+FROM golang:1-alpine AS caddy-builder
+
+ARG TARGETARCH
 
 WORKDIR /usr/bin
+
+RUN apk add --update curl
+
+RUN CADDY_GEN_URL=https://github.com/gera2ld/caddy-gen/releases/latest/download/caddy-gen-linux-${TARGETARCH} \
+    && echo Download caddy-gen from $CADDY_GEN_URL \
+    && curl -fsSLo caddy-gen $CADDY_GEN_URL \
+    && chmod +x caddy-gen
 
 RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@v0.4.4
 
@@ -34,7 +32,7 @@ RUN xcaddy build $CADDY_VERSION \
 FROM caddy:${CADDY_VERSION}-alpine
 VOLUME /data
 WORKDIR /etc/caddy
-COPY --from=caddy-gen-builder /usr/bin/caddy-gen /usr/bin/caddy-gen
+COPY --from=caddy-builder /usr/bin/caddy-gen /usr/bin/caddy-gen
 COPY --from=caddy-builder /usr/bin/caddy /usr/bin/caddy
 COPY entry-point.sh /entry-point.sh
 ENTRYPOINT ["/entry-point.sh"]
