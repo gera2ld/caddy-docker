@@ -26,7 +26,8 @@ RUN xcaddy build $CADDY_VERSION \
     --with github.com/greenpau/caddy-security \
     --with github.com/WeidiDeng/caddy-cloudflare-ip \
     --with github.com/fvbommel/caddy-dns-ip-range \
-    --with github.com/fvbommel/caddy-combine-ip-ranges
+    --with github.com/fvbommel/caddy-combine-ip-ranges \
+    --with github.com/mholt/caddy-l4
 
 # Finalize
 
