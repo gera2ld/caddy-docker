@@ -1,5 +1,4 @@
 ARG CADDY_VERSION=2
-ARG TARGETARCH=amd64
 
 # Download caddy-gen
 
