@@ -24,7 +24,6 @@ env \
   $XCADDY build $CADDY_VERSION \
   --output bin/caddy-$GOOS-$GOARCH \
   --with github.com/caddy-dns/cloudflare \
-  --with github.com/greenpau/caddy-security \
   --with github.com/WeidiDeng/caddy-cloudflare-ip \
   --with github.com/fvbommel/caddy-dns-ip-range \
   --with github.com/fvbommel/caddy-combine-ip-ranges \
