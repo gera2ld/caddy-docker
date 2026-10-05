@@ -5,9 +5,8 @@ ARG CADDY_VERSION=2
 FROM alpine AS downloader
 ARG TARGETARCH
 WORKDIR /usr/bin
-ADD https://github.com/gera2ld/caddy-gen/releases/latest/download/caddy-gen-linux-${TARGETARCH} caddy-gen
-ADD bin/caddy-linux-${TARGETARCH} caddy
-RUN chmod +x caddy caddy-gen
+ADD --chmod=0755 https://github.com/gera2ld/caddy-gen/releases/latest/download/caddy-gen-linux-${TARGETARCH} caddy-gen
+COPY --chmod=0755 bin/caddy-linux-${TARGETARCH} caddy
 
 # Finalize
 
